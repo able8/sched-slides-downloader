@@ -10,6 +10,12 @@ import (
 	"github.com/gocolly/colly"
 )
 
+const (
+	userAgent      = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:133.0) Gecko/20100101 Firefox/133.0"
+	maxBodySize    = 50 * 1024 * 1024 // 50MB
+	rateLimitDelay = 2 * time.Second
+)
+
 func main() {
 	if len(os.Args) < 2 {
 		log.Fatal("Please provide at least one event name as an argument.")
@@ -44,12 +50,12 @@ func downloadEventFiles(event string) {
 // initializeCollector initializes and configures the Colly collector
 func initializeCollector(event string) *colly.Collector {
 	c := colly.NewCollector(
-		colly.MaxBodySize(50 * 1024 * 1024), // Max retrieved response body is 50MB
+		colly.MaxBodySize(maxBodySize),
 	)
 
 	// Set headers for requests
 	c.OnRequest(func(r *colly.Request) {
-		r.Headers.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:133.0) Gecko/20100101 Firefox/133.0")
+		r.Headers.Set("User-Agent", userAgent)
 		r.Ctx.Put("event", event)
 	})
 
@@ -57,7 +63,7 @@ func initializeCollector(event string) *colly.Collector {
 	if err := c.Limit(&colly.LimitRule{
 		DomainGlob:  "*",
 		Parallelism: 1,
-		RandomDelay: 2 * time.Second,
+		RandomDelay: rateLimitDelay,
 	}); err != nil {
 		log.Printf("Failed setting rate limiting: %v", err)
 	}
