@@ -4,7 +4,7 @@ go 1.23
 
 toolchain go1.23.4
 
-require github.com/gocolly/colly v1.2.0
+require github.com/gocolly/colly/v2 v2.1.0
 
 require (
 	github.com/PuerkitoBio/goquery v1.10.0 // indirect

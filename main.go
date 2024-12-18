@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gocolly/colly"
+	"github.com/gocolly/colly/v2"
+	"github.com/gocolly/colly/v2/extensions"
 )
 
 const (
-	userAgent      = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:133.0) Gecko/20100101 Firefox/133.0"
 	maxBodySize    = 50 * 1024 * 1024 // 50MB
 	rateLimitDelay = 2 * time.Second
 )
@@ -51,27 +51,28 @@ func downloadEventFiles(event string) {
 func initializeCollector(event string) *colly.Collector {
 	c := colly.NewCollector(
 		colly.MaxBodySize(maxBodySize),
+		// colly.Debugger(&debug.LogDebugger{}),
 	)
-
-	// Set headers for requests
-	c.OnRequest(func(r *colly.Request) {
-		r.Headers.Set("User-Agent", userAgent)
-		r.Ctx.Put("event", event)
-	})
 
 	// Set rate limiting
 	if err := c.Limit(&colly.LimitRule{
-		DomainGlob:  "*",
+		DomainGlob:  "sched.com",
 		Parallelism: 1,
 		RandomDelay: rateLimitDelay,
 	}); err != nil {
 		log.Printf("Failed setting rate limiting: %v", err)
 	}
 
+	extensions.RandomUserAgent(c)
+
+	// Set headers for requests
+	c.OnRequest(func(r *colly.Request) {
+		r.Ctx.Put("event", event)
+	})
+
 	// Define the first layer - overview links
 	c.OnHTML("div.list-simple div.sched-container-inner a", func(e *colly.HTMLElement) {
-		talkURL := fmt.Sprintf("https://%s.sched.com/%s", event, e.Attr("href"))
-		if err := e.Request.Visit(talkURL); err != nil {
+		if err := e.Request.Visit(e.Attr("href")); err != nil {
 			log.Printf("Failed to visit talk URL: %v", err)
 		}
 	})
